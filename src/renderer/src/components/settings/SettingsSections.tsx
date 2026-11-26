@@ -257,16 +257,22 @@ export function AboutSettingsSection(): React.JSX.Element {
 
     </section>
 
-    <section className="about-specs-card" aria-label="技术信息">
-      <div className="about-spec-row">
-        <span className="about-spec-label">代理引擎</span>
-        <span className="about-spec-value">pi-coding-agent</span>
-      </div>
-      <div className="about-spec-divider" />
-      <div className="about-spec-row">
-        <span className="about-spec-label">运行架构</span>
-        <span className="about-spec-value">Electron · React · TypeScript</span>
-      </div>
+    <section className="about-specs-card" aria-labelledby="about-architecture-title">
+      <h4 id="about-architecture-title">技术架构</h4>
+      <dl className="about-spec-list">
+        <div className="about-spec-row">
+          <dt>pi-coding-agent</dt>
+          <dd>管理代理会话和工具调用，支持流式回复。</dd>
+        </div>
+        <div className="about-spec-row">
+          <dt>Electron · React · TypeScript</dt>
+          <dd>主进程与界面分离，界面通过 Preload 暴露的接口调用桌面能力。</dd>
+        </div>
+        <div className="about-spec-row">
+          <dt>React Virtuoso</dt>
+          <dd>对话列表按可见区域渲染，无需一次加载全部消息到界面。</dd>
+        </div>
+      </dl>
     </section>
 
     <footer className="about-footer">

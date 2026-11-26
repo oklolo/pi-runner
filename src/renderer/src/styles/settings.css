@@ -620,38 +620,54 @@
 
 .about-specs-card {
   margin-top: 16px;
-  padding-inline: clamp(14px, 3cqw, 20px);
+  padding: 14px clamp(14px, 3cqw, 20px) 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-card, 13px);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 25%, transparent);
+}
+
+.about-specs-card h4 {
+  margin: 0 0 4px;
+  font-size: calc(14rem / 14);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.about-spec-list {
+  margin: 0;
 }
 
 .about-spec-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 17em) minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 10px 0;
   font-size: calc(12rem / 14);
+  line-height: 1.65;
 }
 
-.about-spec-label {
-  flex-shrink: 0;
+.about-spec-row + .about-spec-row {
+  border-top: 1px solid var(--border);
+}
+
+.about-spec-row dt,
+.about-spec-row dd {
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.about-spec-row dt {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.about-spec-row dd {
+  margin: 0;
   color: var(--muted);
 }
 
-.about-spec-value {
-  color: var(--text);
-  font-weight: 400;
-  text-align: right;
-  overflow-wrap: anywhere;
-  user-select: text;
-  font-variant-numeric: tabular-nums;
-}
-
-.about-spec-divider {
-  background: var(--border);
-  height: 1px;
+@container (max-width: 460px) {
+  .about-spec-row { grid-template-columns: minmax(0, 1fr); }
 }
 
 .about-footer {

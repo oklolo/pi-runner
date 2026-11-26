@@ -267,12 +267,12 @@ export function registerWindowsUpdate(getWindow: () => BrowserWindow | null | un
       await fs.copyFile(path.join(process.resourcesPath, 'apply-windows-update.ps1'), script)
       const systemRoot = process.env.SystemRoot || 'C:\\Windows'
       const cmd = path.join(systemRoot, 'System32', 'cmd.exe')
-      // PowerShell 直接以 detached 启动时可能在执行脚本前就退出。
-      // 让独立的 cmd 同步运行 PowerShell，既能取得退出状态，也不受 Electron 退出影响。
+      // 由 cmd 同步运行 PowerShell，以保留更新助手的退出状态。
+      // Windows 上 detached 会创建新控制台，使 windowsHide 的无控制台启动失效。
+      // 忽略标准流，并在提交后 unref；Electron 退出不需要等待更新助手。
       // 命令中只使用 mkdtemp 生成的目录名；完整路径通过 cwd 传递，不交给 cmd 解析。
       const command = `""%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ".\\${path.basename(work)}\\apply.ps1""`
       const child = spawn(cmd, ['/d', '/v:off', '/s', '/c', command], {
-        detached: true,
         windowsHide: true,
         windowsVerbatimArguments: true,
         stdio: 'ignore',
