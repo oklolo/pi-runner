@@ -206,7 +206,7 @@ export function AboutSettingsSection(): React.JSX.Element {
         </div>
         <div className="about-actions">
           <div className="flex items-center gap-2">
-            <a href="https://github.com/zlolo/pi-runner" target="_blank" rel="noopener noreferrer" aria-label="在浏览器中打开 GitHub 项目主页" title="GitHub 项目主页" className="about-github-link">
+            <a href={__APP_GITHUB_URL__} target="_blank" rel="noopener noreferrer" aria-label="在浏览器中打开 GitHub 项目主页" title="GitHub 项目主页" className="about-github-link">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 .297a12 12 0 0 0-3.794 23.387c.6.11.82-.261.82-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23a11.5 11.5 0 0 1 6.01 0c2.291-1.552 3.297-1.23 3.297-1.23.653 1.652.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.22 0 4.61-2.807 5.625-5.479 5.922.43.372.823 1.102.823 2.222v3.293c0 .319.216.694.825.576A12.001 12.001 0 0 0 12 .297Z" /></svg>
             </a>
             <div className="flex flex-col gap-2">

@@ -4,6 +4,10 @@
   "private": true,
   "description": "Pi Runner · 行动派 — 本地桌面 AI 编程助手，支持影子快照、代码差异检查与文件和对话同步回滚",
   "author": "Pi Runner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oklolo/pi-runner.git"
+  },
   "main": "out/main/index.mjs",
   "scripts": {
     "dev": "pnpm electron:install && electron-vite dev",
