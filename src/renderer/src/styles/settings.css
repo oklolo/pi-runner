@@ -620,17 +620,10 @@
 
 .about-specs-card {
   margin-top: 16px;
-  padding: 14px clamp(14px, 3cqw, 20px) 4px;
+  padding: 4px clamp(14px, 3cqw, 20px);
   border: 1px solid var(--border);
   border-radius: var(--radius-card, 13px);
   background: color-mix(in srgb, var(--surface) 25%, transparent);
-}
-
-.about-specs-card h4 {
-  margin: 0 0 4px;
-  font-size: calc(14rem / 14);
-  font-weight: 600;
-  color: var(--text);
 }
 
 .about-spec-list {

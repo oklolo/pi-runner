@@ -257,8 +257,7 @@ export function AboutSettingsSection(): React.JSX.Element {
 
     </section>
 
-    <section className="about-specs-card" aria-labelledby="about-architecture-title">
-      <h4 id="about-architecture-title">技术架构</h4>
+    <section className="about-specs-card" aria-label="技术架构">
       <dl className="about-spec-list">
         <div className="about-spec-row">
           <dt>pi-coding-agent</dt>
