@@ -98,7 +98,7 @@ jobs:
       - name: 校验发行文件
         shell: pwsh
         run: |
-          foreach ($file in @('release/pi-runner-setup.exe', 'release/pi-runner-portable.zip', 'release/latest.yml', 'release/portable-update.json')) {
+          foreach ($file in @('release/pi-runner-setup.exe', 'release/pi-runner-portable.zip', 'release/latest.yml')) {
             if (!(Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) {
               throw "发行文件缺失或为空：$file"
             }
@@ -111,7 +111,6 @@ jobs:
             release/pi-runner-setup.exe
             release/pi-runner-portable.zip
             release/latest.yml
-            release/portable-update.json
           if-no-files-found: error
           retention-days: 7
 
@@ -233,7 +232,6 @@ jobs:
           test -s release/pi-runner-portable.zip
           test -s release/pi-runner-macos-arm64.dmg
           test -s release/latest.yml
-          test -s release/portable-update.json
           flags=()
           if [[ "$PRERELEASE" == true ]]; then
             flags+=(--prerelease --latest=false)
@@ -247,7 +245,7 @@ jobs:
           else
             gh release create "$RELEASE_TAG" --verify-tag --draft --title "Pi Runner $RELEASE_TAG" --notes-file .tmp/release-notes/notes.md "${flags[@]}"
           fi
-          gh release upload "$RELEASE_TAG" release/pi-runner-setup.exe release/pi-runner-portable.zip release/pi-runner-macos-arm64.dmg release/latest.yml release/portable-update.json --clobber
+          gh release upload "$RELEASE_TAG" release/pi-runner-setup.exe release/pi-runner-portable.zip release/pi-runner-macos-arm64.dmg release/latest.yml --clobber
           edit_flags=()
           if [[ "$PRERELEASE" == true ]]; then edit_flags+=(--latest=false); fi
           gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE" "${edit_flags[@]}"

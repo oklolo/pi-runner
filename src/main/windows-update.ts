@@ -162,9 +162,12 @@ export function registerWindowsUpdate(getWindow: () => BrowserWindow | null | un
       let nextRelease: Release
       let nextFeed: typeof feed
       if (marker.channel === 'zip') {
-        const info = await (await response(nextBase + 'portable-update.json')).json() as { version: string; name: string; size: number; sha256: string; startupAck?: boolean }
-        if (info.name !== zipName || info.version !== version) throw new Error('便携版更新元数据不匹配')
-        nextRelease = { channel: 'zip', version, size: info.size, hash: info.sha256, startupAck: info.startupAck === true }
+        const manifest = await (await response(nextBase + 'latest.yml')).json() as {
+          version: string; startupAck?: boolean; portable: { name: string; size: number; sha256: string }
+        }
+        const info = manifest.portable
+        if (info?.name !== zipName || manifest.version !== version) throw new Error('便携版更新元数据不匹配')
+        nextRelease = { channel: 'zip', version, size: info.size, hash: info.sha256, startupAck: manifest.startupAck === true }
       } else {
         nextFeed = new updater.NsisUpdater({ provider: 'generic', url: nextBase, useMultipleRangeRequest: false })
         nextFeed.autoDownload = false

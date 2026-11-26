@@ -14,6 +14,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { MAX_CUSTOM_PROMPT_LENGTH, REVIEW_MODEL_OFF, type ModelSettings } from '../../../../shared/models'
 import { unwrapModelResult } from '../../model-result'
 import { compareModelProfiles } from '../../model-sort'
+import { toast } from 'sonner'
 
 interface PreferencesSectionProps {
   preferences: Preferences
@@ -174,19 +175,17 @@ export function AppearanceSettingsSection({ preferences, onPreferences }: Prefer
 export function AboutSettingsSection(): React.JSX.Element {
   const update = useWindowsUpdate()
   const [copied, setCopied] = useState(false)
-  const [copyError, setCopyError] = useState('')
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useLayoutEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current) }, [])
 
   const handleCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(`Pi Runner · 行动派 v${__APP_VERSION__}`)
-      setCopyError('')
       setCopied(true)
       if (copyTimer.current) clearTimeout(copyTimer.current)
       copyTimer.current = setTimeout(() => setCopied(false), 2000)
     } catch {
-      setCopyError('未能复制版本号，请手动选择版本号并复制。')
+      toast.error('未能复制版本号，请手动选择版本号并复制。')
     }
   }
 
@@ -231,9 +230,6 @@ export function AboutSettingsSection(): React.JSX.Element {
       </div>
     </section>
 
-    {copyError && <p className="error" role="alert">{copyError}</p>}
-    {update.message && <p className="text-sm text-muted-foreground" role="status">{update.message}</p>}
-    {(update.phase === 'ready' || update.phase === 'available') && <Button variant="ghost" size="sm" onClick={() => runUpdateAction('check')}>重新检查更新</Button>}
     <section className="about-capabilities" aria-label="产品功能">
     <div className="about-features-grid">
       <div className="about-feature-item">

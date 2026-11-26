@@ -40,8 +40,11 @@ async function writeUpdateMetadata(destination) {
   }
   const setup = await info(installer, 'sha512', 'base64')
   // JSON 是 YAML 的子集，可由 electron-updater 的 YAML 解析器读取。
-  await fs.writeFile(path.join(destination, 'latest.yml'), JSON.stringify({ version, stagedInstall: true, startupAck: true, path: installer, sha512: setup.sha512, files: [{ url: installer, ...setup }] }))
-  await fs.writeFile(path.join(destination, 'portable-update.json'), JSON.stringify({ version, name: zip, startupAck: true, ...await info(zip, 'sha256', 'hex') }))
+  await fs.writeFile(path.join(destination, 'latest.yml'), JSON.stringify({
+    version, stagedInstall: true, startupAck: true, path: installer, sha512: setup.sha512,
+    files: [{ url: installer, ...setup }],
+    portable: { name: zip, ...await info(zip, 'sha256', 'hex') },
+  }))
 }
 const { build, createTargets, Platform } = require('electron-builder')
 const { packageWindows, assertX64, getCompiler } = require('./native-windows.cjs')
