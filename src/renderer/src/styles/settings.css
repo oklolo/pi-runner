@@ -589,6 +589,10 @@
   border-bottom: 1px solid var(--border);
 }
 
+.about-feature-item:last-child {
+  border-bottom: 0;
+}
+
 .about-feature-icon {
   display: flex;
   align-items: center;
