@@ -556,7 +556,7 @@
   overflow-wrap: anywhere;
   user-select: text;
   color: var(--text);
-  font-size: calc(18rem / 14);
+  font-size: calc(14rem / 14);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
