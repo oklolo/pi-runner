@@ -1,0 +1,281 @@
+import { Button } from '@/components/ui/button'
+import { Kbd } from '@/components/ui/kbd'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { GroupedModelSelect } from './GroupedModelSelect'
+import { runUpdateAction, UpdateDot, UpdateProgress, useWindowsUpdate } from '../WindowsUpdate'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { ArrowRightToLine, Check, Copy, Download, GitCompare, LoaderCircle, Lock, Monitor, Moon, RefreshCw, RotateCcw, ShieldCheck, Sun } from 'lucide-react'
+import type { Preferences, ThemePreference } from '../../preferences'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { MAX_CUSTOM_PROMPT_LENGTH, REVIEW_MODEL_OFF, type ModelSettings } from '../../../../shared/models'
+import { unwrapModelResult } from '../../model-result'
+import { compareModelProfiles } from '../../model-sort'
+
+interface PreferencesSectionProps {
+  preferences: Preferences
+  onPreferences: (preferences: Preferences) => void
+}
+
+const CUSTOM_PROMPT_EXAMPLE = '默认使用简体中文，包括与我的对话、文档、代码注释和日志；必要的技术术语与标识符保留原文。'
+const CUSTOM_PROMPT_PLACEHOLDER = CUSTOM_PROMPT_EXAMPLE
+
+export function GeneralSettingsSection({ preferences, onPreferences, isMac, settings, onModelSettingsChange, onBusyChange, promptReady = true }: PreferencesSectionProps & {
+  promptReady?: boolean
+  isMac: boolean
+  settings: ModelSettings | null
+  onModelSettingsChange(settings: ModelSettings): void
+  onBusyChange(busy: boolean): void
+}): React.JSX.Element {
+  const promptRef = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = promptRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 400)}px`
+  }, [preferences.customPrompt])
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const [error, setError] = useState('')
+  const [promptFocused, setPromptFocused] = useState(false)
+  const showPromptSuggestion = promptFocused && preferences.customPrompt === ''
+  const usableProfiles = settings?.profiles.filter(item => item.enabled !== false && item.available !== false).sort(compareModelProfiles) ?? []
+  const reviewValue = usableProfiles.some(item => item.id === settings?.reviewProfileId) ? settings!.reviewProfileId! : settings?.reviewDisabled ? REVIEW_MODEL_OFF : 'follow-default'
+  const changeDefault = async (id: string): Promise<void> => {
+    if (savingRef.current || id === settings?.activeProfileId) return
+    savingRef.current = true; setSaving(true); onBusyChange(true); setError('')
+    try { onModelSettingsChange(unwrapModelResult(await window.piRunner.setActiveModel(id))) }
+    catch (e) { setError(e instanceof Error ? e.message : '默认模型保存失败，请重试。') }
+    finally { savingRef.current = false; setSaving(false); onBusyChange(false) }
+  }
+  const changeReviewModel = async (id: string): Promise<void> => {
+    if (savingRef.current || id === reviewValue) return
+    savingRef.current = true; setSaving(true); onBusyChange(true); setError('')
+    try { onModelSettingsChange(unwrapModelResult(await window.piRunner.setReviewModel(id === 'follow-default' ? null : id))) }
+    catch (e) { setError(e instanceof Error ? e.message : '审核模型保存失败，请重试。') }
+    finally { savingRef.current = false; setSaving(false); onBusyChange(false) }
+  }
+  return <>
+    <h2>通用</h2>
+    <p className="section-description">调整工作台的默认行为。</p>
+    <section className="settings-card custom-prompt-setting">
+      <Label htmlFor="custom-prompt">全局提示词</Label>
+      <p id="custom-prompt-description" className="hint">每次发送消息时都会附带这些指令，对所有模型和会话生效。留空则不附加，修改从下一轮对话生效。</p>
+      <div className="custom-prompt-input" data-suggestion-visible={showPromptSuggestion}>
+        <Textarea disabled={!promptReady} ref={promptRef} id="custom-prompt" aria-describedby={showPromptSuggestion ? 'custom-prompt-description custom-prompt-shortcut' : 'custom-prompt-description'} rows={1} maxLength={MAX_CUSTOM_PROMPT_LENGTH} value={preferences.customPrompt} placeholder={CUSTOM_PROMPT_PLACEHOLDER}
+          onFocus={() => setPromptFocused(true)} onBlur={() => setPromptFocused(false)}
+          onChange={event => onPreferences({ ...preferences, customPrompt: event.target.value })}
+          onKeyDown={event => {
+            if (event.key === 'Tab' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey && !event.nativeEvent.isComposing && preferences.customPrompt === '') {
+              event.preventDefault()
+              onPreferences({ ...preferences, customPrompt: CUSTOM_PROMPT_EXAMPLE })
+            }
+          }} />
+        {showPromptSuggestion && <>
+          <div className="custom-prompt-placeholder" aria-hidden="true">{CUSTOM_PROMPT_PLACEHOLDER} <Kbd><ArrowRightToLine size={12} />Tab</Kbd></div>
+          <span id="custom-prompt-shortcut" className="sr-only">按 Tab 填入示例提示词。</span>
+        </>}
+      </div>
+    </section>
+    <section className="settings-card">
+      <div className="setting-row">
+        <div><h3>默认模型</h3><p>新建会话时使用，可在会话中单独切换。</p></div>
+        <div className="settings-select-control settings-model-select"><GroupedModelSelect label="默认模型" value={settings?.activeProfileId ?? ''} placeholder={settings ? '请先在模型供应商中启用模型' : '正在读取模型…'} disabled={saving || !usableProfiles.length} profiles={usableProfiles} providers={settings?.providers} onChange={id => { void changeDefault(id) }} /></div>
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="settings-divider" />
+      <div className="setting-row">
+        <div><h3>审核模型</h3><p>项目自审模式下辅助审核文件修改与命令，审核结果存疑或模型不可用时交由用户确认。</p></div>
+        <div className="settings-select-control settings-model-select"><GroupedModelSelect label="审核模型" value={reviewValue} placeholder="使用默认模型" disabled={saving || !settings} profiles={usableProfiles} providers={settings?.providers} choices={[{ value: REVIEW_MODEL_OFF, label: '关闭' }, { value: 'follow-default', label: '使用默认模型' }]} onChange={id => { void changeReviewModel(id) }} /></div>
+      </div>
+      <div className="settings-divider" />
+      <div className="setting-row">
+        <div><h3>上下文压缩阈值</h3><p>上下文占用达到该比例时，发送前自动压缩历史消息，默认 90%。</p></div>
+        <div className="compression-slider-row">
+          <Slider id="compression-threshold" min={60} max={95} step={5} value={[preferences.compressionThreshold]} aria-label="上下文压缩阈值" onValueChange={values => onPreferences({ ...preferences, compressionThreshold: values[0] })} className="compression-slider" />
+          <output htmlFor="compression-threshold">{preferences.compressionThreshold}%</output>
+        </div>
+      </div>
+      <div className="settings-divider" />
+      <div className="shortcut-setting">
+        <span><b>使用 {isMac ? '⌘' : 'Ctrl'} + Enter 发送</b><small>开启时 Enter 换行；关闭时 Enter 发送，Shift + Enter 换行。</small></span>
+        <div className="flex shrink-0 items-center gap-2">
+          <Switch id="send-with-modifier" checked={preferences.sendWithCtrlEnter} onCheckedChange={sendWithCtrlEnter => onPreferences({ ...preferences, sendWithCtrlEnter })} />
+          <Label htmlFor="send-with-modifier" className="sr-only">启用修饰键加 Enter 发送</Label>
+        </div>
+      </div>
+      <div className="settings-divider" />
+      <div className="shortcut-setting">
+        <span><b>系统通知</b><small>任务结束或需要你输入时提醒。macOS 使用系统通知，Windows 显示桌面右下角气泡。</small></span>
+        <div className="flex shrink-0 items-center gap-2">
+          <Switch id="system-notifications" checked={preferences.systemNotifications} onCheckedChange={systemNotifications => onPreferences({ ...preferences, systemNotifications })} />
+          <Label htmlFor="system-notifications" className="sr-only">开启系统通知</Label>
+        </div>
+      </div>
+      <div className="settings-divider" />
+      <div className="shortcut-setting">
+        <span><b>运行期间阻止系统休眠</b><small>有会话正在执行时阻止系统进入休眠或睡眠；不会阻止自动锁屏和屏幕关闭。</small></span>
+        <div className="flex shrink-0 items-center gap-2">
+          <Switch id="prevent-sleep" checked={preferences.preventSleep} onCheckedChange={preventSleep => onPreferences({ ...preferences, preventSleep })} />
+          <Label htmlFor="prevent-sleep" className="sr-only">运行期间阻止系统休眠</Label>
+        </div>
+      </div>
+    </section>
+    <p className="hint">设置自动保存在此设备。</p>
+  </>
+}
+
+const THEME_OPTIONS: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
+  { id: 'light', label: '浅色', icon: Sun },
+  { id: 'dark', label: '深色', icon: Moon },
+  { id: 'system', label: '跟随系统', icon: Monitor }
+]
+const FONT_OPTIONS: { id: Preferences['font']; label: string }[] = [
+  { id: 'inter', label: 'Inter（默认）' },
+  { id: 'system', label: '系统默认' },
+  { id: 'segoe', label: 'Segoe UI' },
+  { id: 'yahei', label: 'Microsoft YaHei UI' }
+]
+export function AppearanceSettingsSection({ preferences, onPreferences }: PreferencesSectionProps): React.JSX.Element {
+  return <>
+    <h2>外观</h2>
+    <p className="section-description">让工作台保持舒适、清晰。</p>
+    <section className="settings-card">
+      <div className="setting-row">
+        <div><h3>颜色主题</h3><p>同时应用于任务列表、对话、设置和代码对比。选择跟随系统后，会根据系统外观自动切换。</p></div>
+        <RadioGroup className="theme-options" aria-label="颜色主题" value={preferences.theme} onValueChange={value => onPreferences({ ...preferences, theme: value as ThemePreference })}>
+          {THEME_OPTIONS.map(({ id, label, icon: Icon }) => <RadioGroupItem key={id} variant="segmented" className="theme-option" value={id}><Icon size={15} />{label}</RadioGroupItem>)}
+        </RadioGroup>
+      </div>
+    </section>
+    <section className="settings-card">
+      <div className="setting-row">
+        <div><h3>界面字体</h3><p>用于菜单、设置、对话正文等界面文字。</p></div>
+        <div className="font-controls">
+          <Select value={preferences.font} onValueChange={value => onPreferences({ ...preferences, font: value as Preferences['font'] })}>
+            <SelectTrigger aria-label="界面字体" className="font-select"><SelectValue /></SelectTrigger>
+            <SelectContent>{FONT_OPTIONS.map(option => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <div className="font-size-control">
+            <span className="font-size-label">字号</span>
+            <Slider min={12} max={20} step={1} value={[preferences.fontSize]} aria-label="字号" className="font-size-slider" onValueChange={values => onPreferences({ ...preferences, fontSize: values[0] })} />
+            <output>{preferences.fontSize}</output>
+          </div>
+          <Button variant="outline" size="icon" title="恢复默认字体设置" aria-label="恢复默认字体设置" onClick={() => onPreferences({ ...preferences, font: 'inter', fontSize: 14 })}><RotateCcw size={15} /></Button>
+        </div>
+      </div>
+    </section>
+  </>
+}
+
+export function AboutSettingsSection(): React.JSX.Element {
+  const update = useWindowsUpdate()
+  const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState('')
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useLayoutEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current) }, [])
+
+  const handleCopy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(`Pi Runner · 行动派 v${__APP_VERSION__}`)
+      setCopyError('')
+      setCopied(true)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyError('未能复制版本号，请手动选择版本号并复制。')
+    }
+  }
+
+  return <div className="about-section">
+    <h2>关于</h2>
+
+    <section className="about-header-card" aria-label="产品与版本">
+      <div className="about-brand-row">
+        <div className="about-brand-logo">
+          <img src="./icons/app-icon.png" alt="Pi Runner 图标" draggable={false} />
+        </div>
+        <div className="about-brand-info">
+          <div className="about-title-row">
+            <h3>Pi Runner<span>行动派</span></h3>
+          </div>
+          <p className="about-tagline">本地运行的桌面 AI 编程助手</p>
+          <p className="about-intro">通过对话完成编程任务、审查操作并查看文件改动。</p>
+        </div>
+        <div className="about-actions">
+          <div className="flex items-center gap-2">
+            <a href="https://github.com/zlolo/pi-runner" target="_blank" rel="noopener noreferrer" aria-label="在浏览器中打开 GitHub 项目主页" title="GitHub 项目主页" className="about-github-link">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 .297a12 12 0 0 0-3.794 23.387c.6.11.82-.261.82-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23a11.5 11.5 0 0 1 6.01 0c2.291-1.552 3.297-1.23 3.297-1.23.653 1.652.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.22 0 4.61-2.807 5.625-5.479 5.922.43.372.823 1.102.823 2.222v3.293c0 .319.216.694.825.576A12.001 12.001 0 0 0 12 .297Z" /></svg>
+            </a>
+            <div className="flex flex-col gap-2">
+              <span className="about-version-label">当前版本</span>
+              <span className="about-version-badge">v{__APP_VERSION__}</span>
+            </div>
+          </div>
+          {update.phase === 'unsupported' ? <Button variant="outline" size="sm" onClick={handleCopy} className="about-copy-btn">
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span aria-live="polite">{copied ? '已复制' : '复制版本'}</span>
+          </Button> : <Button variant="outline" size="sm" className="about-copy-btn"
+            disabled={['checking', 'downloading', 'installing'].includes(update.phase)}
+            onClick={() => runUpdateAction(update.phase === 'available' ? 'download' : update.phase === 'ready' ? 'install' : 'check')}>
+            {update.phase === 'downloading' ? <UpdateProgress percent={update.percent} /> :
+              update.phase === 'available' ? <><Download size={14} aria-hidden="true" /><span className="relative">下载更新<UpdateDot /></span></> :
+              update.phase === 'ready' ? <><RefreshCw size={14} aria-hidden="true" /><span className="relative">立即更新<UpdateDot /></span></> :
+              update.phase === 'checking' || update.phase === 'installing' ? <><LoaderCircle size={14} aria-hidden="true" className="motion-safe:animate-spin" />{update.phase === 'checking' ? '正在检查…' : '正在更新…'}</> :
+              <><RefreshCw size={14} aria-hidden="true" />检查更新</>}
+          </Button>}
+        </div>
+      </div>
+    </section>
+
+    {copyError && <p className="error" role="alert">{copyError}</p>}
+    {update.message && <p className="text-sm text-muted-foreground" role="status">{update.message}</p>}
+    {(update.phase === 'ready' || update.phase === 'available') && <Button variant="ghost" size="sm" onClick={() => runUpdateAction('check')}>重新检查更新</Button>}
+    <section className="about-capabilities" aria-label="产品功能">
+    <div className="about-features-grid">
+      <div className="about-feature-item">
+        <div className="about-feature-icon"><ShieldCheck size={18} /></div>
+        <div className="about-feature-content">
+          <h4>操作权限</h4>
+          <p>按需选择每次询问、项目自审或完全访问。项目自审无法判断时，由你确认。</p>
+        </div>
+      </div>
+      <div className="about-feature-item">
+        <div className="about-feature-icon"><GitCompare size={18} /></div>
+        <div className="about-feature-content">
+          <h4>改动与恢复</h4>
+          <p>查看文件差异，按对话轮次恢复快照中的项目文件，不改写项目的 Git 历史。</p>
+        </div>
+      </div>
+      <div className="about-feature-item">
+        <div className="about-feature-icon"><Lock size={18} /></div>
+        <div className="about-feature-content">
+          <h4>数据存储与传输</h4>
+          <p>会话和快照保存在本机，API Key 通过系统安全存储加密保存。使用远程模型时，请求会发送给对应的服务商。</p>
+        </div>
+      </div>
+    </div>
+
+    </section>
+
+    <section className="about-specs-card" aria-label="技术信息">
+      <div className="about-spec-row">
+        <span className="about-spec-label">代理引擎</span>
+        <span className="about-spec-value">pi-coding-agent</span>
+      </div>
+      <div className="about-spec-divider" />
+      <div className="about-spec-row">
+        <span className="about-spec-label">运行架构</span>
+        <span className="about-spec-value">Electron · React · TypeScript</span>
+      </div>
+    </section>
+
+    <footer className="about-footer">
+      <span>Pi Runner · 行动派</span>
+      <span>© 2026 Pi Runner · 保留所有权利</span>
+    </footer>
+  </div>
+}

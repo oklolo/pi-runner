@@ -1,0 +1,259 @@
+name: 构建并发布发行包
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '已有版本标签，例如 v0.1.0 或 v0.2.0-beta.1'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: 校验版本标签
+        id: version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo '标签必须形如 v0.1.0 或 v0.2.0-beta.1' >&2
+            exit 1
+          fi
+          if (( BASH_REMATCH[1] > 65535 || BASH_REMATCH[2] > 65535 || BASH_REMATCH[3] > 65535 )); then
+            echo 'Windows 文件版本的每一段必须介于 0 和 65535' >&2
+            exit 1
+          fi
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            IFS=. read -ra identifiers <<< "${RELEASE_TAG#*-}"
+            for identifier in "${identifiers[@]}"; do
+              if [[ "$identifier" =~ ^0[0-9]+$ ]]; then
+                echo '预发布版本的纯数字标识不能带前导零' >&2
+                exit 1
+              fi
+            done
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            echo 'prerelease=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'prerelease=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ steps.version.outputs.tag }}
+          persist-credentials: false
+      - name: 固定构建提交
+        id: commit
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '26'
+          check-latest: true
+          cache: pnpm
+      - name: 安装锁定依赖
+        run: pnpm install --frozen-lockfile
+      # 仅修改 CI 工作区，不提交或回写仓库；安装依赖后再写入版本。
+      - name: 从标签设置发行版本
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          node -e 'const fs = require("node:fs"); const file = "package.json"; const pkg = JSON.parse(fs.readFileSync(file, "utf8")); pkg.version = process.env.RELEASE_TAG.slice(1); fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n"); console.log(`发行版本：${pkg.version}`);'
+      - name: 准备 Electron 运行时
+        run: pnpm electron:install
+      - name: 生成应用图标
+        run: pnpm icons:generate
+      - name: 编译 Windows x64 安装包和便携 ZIP
+        run: pnpm dist:win:release
+      - name: 校验发行文件
+        shell: pwsh
+        run: |
+          foreach ($file in @('release/pi-runner-setup.exe', 'release/pi-runner-portable.zip', 'release/latest.yml', 'release/portable-update.json')) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) {
+              throw "发行文件缺失或为空：$file"
+            }
+          }
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          compression-level: 0
+          name: windows-release
+          path: |
+            release/pi-runner-setup.exe
+            release/pi-runner-portable.zip
+            release/latest.yml
+            release/portable-update.json
+          if-no-files-found: error
+          retention-days: 7
+
+  # 当前生成未签名 DMG；正式公开分发前应配置 Apple 签名与公证。
+  macos:
+    needs: prepare
+    # macos-26 为 Apple Silicon ARM64 runner，不再构建 Intel 版本。
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '26'
+          architecture: arm64
+          check-latest: true
+          cache: pnpm
+      - name: 安装锁定依赖
+        run: pnpm install --frozen-lockfile
+      - name: 从标签设置发行版本
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          node -e 'const fs = require("node:fs"); const file = "package.json"; const pkg = JSON.parse(fs.readFileSync(file, "utf8")); pkg.version = process.env.RELEASE_TAG.slice(1); fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");'
+      - name: 准备 Electron 运行时
+        run: pnpm electron:install
+      - name: 生成应用图标
+        run: pnpm icons:generate
+      - name: 编译 macOS DMG
+        run: pnpm dist:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: 校验并统一发行文件名
+        shell: bash
+        env:
+          RELEASE_ARCH: arm64
+        run: |
+          shopt -s nullglob
+          files=(release/*.dmg)
+          if [[ ${#files[@]} -ne 1 ]] || [[ ! -s "${files[0]}" ]]; then
+            echo '预期生成一个非空的 macOS DMG 文件' >&2
+            exit 1
+          fi
+          mv "${files[0]}" "release/pi-runner-macos-$RELEASE_ARCH.dmg"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          compression-level: 0
+          name: macos-release-arm64
+          path: release/pi-runner-macos-arm64.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [prepare, windows, macos]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 汇总完整提交记录
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p .tmp/release-notes
+          current=$(git rev-parse HEAD)
+          previous=''
+          # 从当前提交的父提交向历史查找最近的版本标签，避免选中当前标签。
+          if git rev-parse --verify 'HEAD^' >/dev/null 2>&1; then
+            previous=$(git describe --tags --match 'v[0-9]*' --abbrev=0 'HEAD^' 2>/dev/null || true)
+          fi
+          range="$current"
+          if [[ -n "$previous" ]]; then range="$previous..$current"; fi
+          {
+            echo '## 完整提交记录'
+            echo
+            if [[ -n "$previous" ]]; then
+              printf '范围：`%s` → `%s`（不含起始标签提交）。\n\n' "$previous" "$RELEASE_TAG"
+            else
+              printf '首个版本：截至 `%s` 的全部提交。\n\n' "$RELEASE_TAG"
+            fi
+            # %B 保留完整标题和正文；缩进为 Markdown 代码块，避免正文被当作 HTML。
+            # 不过滤合并提交，不去重、不摘要；按从旧到新的顺序列出。
+            git log --reverse --format='提交：%H%n作者：%an%n日期：%aI%n%n%B%n----------------------------------------' "$range" -- | sed 's/^/    /'
+            echo
+            if [[ -n "$previous" ]]; then
+              printf 'Full Changelog: https://github.com/%s/compare/%s...%s\n' "$GH_REPO" "$previous" "$RELEASE_TAG"
+            else
+              printf 'Full Changelog: https://github.com/%s/commits/%s\n' "$GH_REPO" "$RELEASE_TAG"
+            fi
+          } > .tmp/release-notes/notes.md
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: windows-release
+          path: release
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: macos-release-arm64
+          path: release
+      - name: 创建 Release 并更新下载附件
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          test -s release/pi-runner-setup.exe
+          test -s release/pi-runner-portable.zip
+          test -s release/pi-runner-macos-arm64.dmg
+          test -s release/latest.yml
+          test -s release/portable-update.json
+          flags=()
+          if [[ "$PRERELEASE" == true ]]; then
+            flags+=(--prerelease --latest=false)
+          fi
+          # 已公开的附件可能正在被用户下载，禁止按同一标签替换内容。
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft'); then
+            if [[ "$draft" != true ]]; then
+              echo "::notice::Release $RELEASE_TAG 已公开，保留原附件。如需重新发行，请推送新版本标签。"
+              exit 0
+            fi
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Pi Runner $RELEASE_TAG" --notes-file .tmp/release-notes/notes.md "${flags[@]}"
+          fi
+          gh release upload "$RELEASE_TAG" release/pi-runner-setup.exe release/pi-runner-portable.zip release/pi-runner-macos-arm64.dmg release/latest.yml release/portable-update.json --clobber
+          edit_flags=()
+          if [[ "$PRERELEASE" == true ]]; then edit_flags+=(--latest=false); fi
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE" "${edit_flags[@]}"
+          {
+            echo '## 发行下载'
+            echo "- [macOS Apple Silicon DMG](https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/pi-runner-macos-arm64.dmg)"
+            echo "- [Windows x64 安装包](https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/pi-runner-setup.exe)"
+            echo "- [Windows x64 解压即用 ZIP](https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/pi-runner-portable.zip)"
+          } >> "$GITHUB_STEP_SUMMARY"

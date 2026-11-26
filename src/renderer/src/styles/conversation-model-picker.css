@@ -1,0 +1,166 @@
+.conversation-model-picker {
+  z-index: 50;
+  width: min(440px, calc(100vw - 24px));
+  height: 600px;
+  max-height: var(--radix-popover-content-available-height);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 3px 8px #0002;
+}
+
+.conversation-model-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.conversation-model-search > svg { flex: none; color: var(--muted); }
+
+.conversation-model-search input {
+  flex: 1;
+  min-width: 0;
+  /* 加高输入框；字号不变，单行输入的文字默认垂直居中。 */
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 6px;
+  color: var(--text);
+  font-size: calc(13rem / 14);
+  line-height: 1;
+}
+
+.conversation-model-search input::placeholder { color: var(--text); opacity: .6; }
+.conversation-model-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.conversation-model-config { flex: none; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; color: var(--muted); }
+
+.conversation-model-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 8px 10px;
+}
+
+.conversation-model-list h2 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -8px;
+  padding: 4px 8px 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: calc(11.5rem / 14);
+  font-weight: 500;
+}
+
+.conversation-model-list section:first-child h2 { padding-top: 0; }
+.conversation-model-list section + section { margin-top: 2px; }
+
+.conversation-model-group-toggle {
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 30px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: left;
+}
+
+.conversation-model-group-toggle > svg { flex: none; }
+
+.conversation-model-option {
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: calc(34rem / 14);
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.conversation-model-option + .conversation-model-option { margin-top: 2px; }
+.conversation-model-option[aria-current] { background: var(--hover); }
+.conversation-model-option > svg:first-child { flex: none; }
+.conversation-model-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(13.5rem / 14);
+  font-weight: 400;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 当前会话模型以名称加粗标识，不再使用勾选标记。 */
+.conversation-model-name.is-current { font-weight: 600; }
+
+.conversation-model-name-tooltip {
+  z-index: 110;
+  max-width: min(440px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #3c4043;
+  color: #f5f5f5;
+  font-size: calc(12rem / 14);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.conversation-model-meta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: calc(11rem / 14);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.conversation-model-meta > span { display: inline-flex; align-items: center; white-space: nowrap; }
+.conversation-model-empty { margin: 12px 10px; font-size: calc(13rem / 14); line-height: 1.7; }
+
+/* 触发器上的推理档位短标签；不参与模型名省略。 */
+.model-picker .model-picker-thinking { flex: none; max-width: 96px; color: var(--muted); }
+
+.conversation-model-reasoning {
+  flex: none;
+  /* 固定推理区占位，切换模型时保持列表高度与条目位置不变。 */
+  box-sizing: border-box;
+  height: calc(96rem / 14);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.conversation-model-reasoning-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: calc(11.5rem / 14); color: var(--muted); }
+.conversation-model-reasoning-head > span { flex: none; white-space: nowrap; }
+.conversation-model-reasoning-head strong { min-width: 0; overflow: hidden; color: var(--text); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-model-thinking { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border-radius: 14px; background: var(--hover); }
+.conversation-model-thinking-option { flex: 1 0 auto; min-width: 34px; border: 0; padding: 4px 8px; border-radius: 11px; text-align: center; font-size: calc(12rem / 14); color: var(--muted); background: transparent; cursor: pointer; }
+.conversation-model-thinking-option[data-state="checked"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px #0002; }
+.conversation-model-thinking-option:disabled { cursor: default; }
+.conversation-model-reasoning-hint { margin: 8px 0 0; font-size: calc(11.5rem / 14); line-height: 1.6; color: var(--muted); }

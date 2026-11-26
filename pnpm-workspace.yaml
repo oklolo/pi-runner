@@ -1,0 +1,13 @@
+# Use a conventional node_modules layout for Electron packaging.
+nodeLinker: hoisted
+allowBuilds:
+  '@google/genai': false
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  koffi: true
+  node-pty: true
+  protobufjs: false
+patchedDependencies:
+  '@earendil-works/pi-ai@1.5.0': patches/@earendil-works__pi-ai@1.5.0.patch
+  app-builder-lib@26.18.0: patches/app-builder-lib@26.18.0.patch

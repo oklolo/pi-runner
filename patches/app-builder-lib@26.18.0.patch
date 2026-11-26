@@ -1,0 +1,18 @@
+diff --git a/out/node-module-collector/nodeModulesCollector.js b/out/node-module-collector/nodeModulesCollector.js
+index eb7914fead5762fbbf40ae836d9429d51daddfc6..67a276d62de798787058985aba84124e8c9851f1 100644
+--- a/out/node-module-collector/nodeModulesCollector.js
++++ b/out/node-module-collector/nodeModulesCollector.js
+@@ -27,8 +27,11 @@ class NodeModulesCollector {
+                 builder_util_1.log.debug({ manager }, "unable to determine node-linker setting; assuming non-hoisted (virtual store) layout");
+                 return false;
+             }
+-            const lines = Object.fromEntries(config.split("\n").map(line => line.split("=").map(s => s.trim())));
+-            if (lines["node-linker"] === "hoisted") {
++            // pnpm 11+ 的 config list 默认输出 JSON；同时保留旧版键值格式。
++            const lines = config.trimStart().startsWith("{")
++                ? JSON.parse(config)
++                : Object.fromEntries(config.split("\n").map(line => line.split("=").map(s => s.trim())));
++            if ((lines["node-linker"] || lines.nodeLinker) === "hoisted") {
+                 builder_util_1.log.debug({ manager }, "node_modules are hoisted");
+                 return true;
+             }

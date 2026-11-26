@@ -1,0 +1,168 @@
+@media (min-width: 1600px) {
+.settings-content {
+  padding-left: 10%;
+  padding-right: 10%;
+}
+}
+
+@media (max-width: 1100px) {
+.app {
+  grid-template-columns: var(--task-sidebar-width) minmax(0, 1fr);
+}
+
+.app.tools-open {
+  grid-template-columns: var(--task-sidebar-width) minmax(320px, 1fr) clamp(min(360px, 100% - var(--task-sidebar-width) - 320px), var(--tool-panel-width, 360px), max(min(360px, 100% - var(--task-sidebar-width) - 320px), (100% - var(--task-sidebar-width)) * 0.5));
+}
+
+.settings-content {
+  padding: 40px 30px;
+}
+
+}
+
+@media (max-width: 850px) {
+.tool-panel-resizer {
+  display: none;
+}
+
+.app.tools-open {
+  grid-template-columns: var(--task-sidebar-width) minmax(0, 1fr);
+}
+
+.tool-sidebar {
+  z-index: 5;
+  width: min(420px, 100%);
+  position: fixed;
+  top: var(--titlebar-height);
+  bottom: 0;
+  right: 0;
+  box-shadow: -10px 0 35px #0002;
+}
+
+.setting-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.settings-content {
+  padding: 32px 24px;
+}
+}
+
+@media (max-width: 600px) {
+.window-shell, .window-shell.tools-open {
+  --task-sidebar-width: clamp(160px, 28vw, 184px);
+}
+
+.window-titlebar-drag {
+  padding: 0 8px;
+}
+
+.window-brand {
+  flex-basis: calc(var(--task-sidebar-width) - 8px);
+  gap: 6px;
+}
+
+.window-app-name {
+  font-size: calc(11rem / 14);
+}
+
+.window-controls button {
+  width: calc(36rem / 14);
+}
+
+.app, .app.tools-open {
+  grid-template-columns: var(--task-sidebar-width) minmax(0, 1fr);
+}
+
+.task-sidebar {
+  padding: 8px;
+}
+
+.task-actions button {
+  gap: 3px;
+  padding: 8px 2px;
+  font-size: calc(10rem / 14);
+}
+
+.chat-scroll {
+  padding: 0 16px;
+}
+
+/* 窄屏留给气泡的横向空间更少，放宽占比保持可读行数 */
+.chat-message.user {
+  max-width: 92%;
+}
+
+.composer-wrap {
+  padding: 10px 12px 10px;
+}
+
+.composer-mode {
+  display: none;
+}
+
+.composer-actions > div {
+  justify-content: space-between;
+}
+
+.composer-actions > div:last-child {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.chat-welcome {
+  padding: 24px 0;
+}
+
+.chat-welcome h1 {
+  font-size: calc(20rem / 14);
+}
+
+.settings-layout {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: 1fr;
+}
+
+.settings-nav {
+  padding: 12px 16px;
+}
+
+.settings-back {
+  margin: 0 0 10px;
+  padding: 5px;
+}
+
+.settings-back span {
+  font-size: calc(20rem / 14);
+}
+
+.settings-nav .search-field {
+  margin-bottom: 8px;
+}
+
+.settings-nav nav {
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 0;
+  display: flex;
+}
+
+.settings-nav nav button {
+  padding: 8px;
+  font-size: calc(12rem / 14);
+}
+
+.settings-content {
+  padding: 16px;
+}
+
+.form-grid {
+  grid-template-columns: 1fr;
+}
+
+.model-settings fieldset, .settings-card {
+  padding: 14px;
+}
+}

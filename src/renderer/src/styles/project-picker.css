@@ -1,0 +1,134 @@
+.project-picker-list small {
+  color: var(--muted);
+  font-size: calc(12rem / 14);
+  line-height: 1.7;
+}
+
+.project-picker-list {
+  gap: 6px;
+  max-height: 330px;
+  display: grid;
+  overflow: auto;
+}
+
+.project-picker-ordinary {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-picker-list > button {
+  text-align: left;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 12px;
+}
+
+.project-picker-new-button {
+  width: 100%;
+  margin-top: 12px;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 12px;
+}
+
+.project-picker-list > button > span {
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  display: grid;
+}
+
+.project-picker-list b, .project-picker-list small {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.edit-info-dialog {
+  width: min(560px, calc(100vw - 40px));
+}
+
+.edit-info-dialog .modal-heading {
+  margin-bottom: 6px;
+}
+
+.edit-info-dialog .modal-description {
+  margin-bottom: 22px;
+}
+
+.edit-info-fields {
+  display: grid;
+  gap: 20px;
+}
+
+.edit-info-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.edit-info-field .hint {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.edit-info-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-info-field-heading span {
+  color: var(--muted);
+  font-size: calc(12rem / 14);
+}
+
+.edit-info-prompt-field {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.edit-info-prompt-field .edit-info-prompt {
+  width: 100%;
+  max-height: calc(9rem + 18px);
+  overflow-y: auto;
+  resize: none;
+}
+
+.edit-info-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.edit-info-footer .hint {
+  margin: 0;
+}
+
+.edit-info-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.project-edit-directory {
+  gap: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.project-edit-directory > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-edit-directory > button {
+  flex: none;
+}
+

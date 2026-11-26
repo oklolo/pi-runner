@@ -1,0 +1,21 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows 批处理使用 CRLF，避免 cmd 截断含中文的脚本行。
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# Windows PowerShell 5.1 通过 BOM 正确识别中文脚本。
+[scripts/dev-menu-windows.ps1]
+charset = utf-8-bom
+end_of_line = crlf
